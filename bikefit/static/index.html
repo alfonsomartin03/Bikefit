@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bike Fit Analyzer</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--text:#1d2330;--muted:#677084;--line:#dfe3ea;--accent:#2563eb;--accent-soft:#e8efff;
+--ok:#16803c;--ok-bg:#e7f6ec;--minor:#9a6700;--minor-bg:#fff4d6;--major:#b42318;--major-bg:#fde8e6;--info-bg:#eef1f6}
+@media (prefers-color-scheme:dark){:root{--bg:#10131a;--card:#181d27;--text:#e8ebf2;--muted:#9aa3b5;--line:#2a3140;--accent:#6b9bff;--accent-soft:#1d2a47;
+--ok:#5ad08a;--ok-bg:#15301f;--minor:#f0c75e;--minor-bg:#37300f;--major:#ff8f85;--major-bg:#3a1a17;--info-bg:#222836}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+main{max-width:860px;margin:0 auto;padding:24px 16px 80px}
+h1{font-size:26px;margin:0 0 4px}h2{font-size:18px;margin:0 0 12px}
+.sub{color:var(--muted);margin:0 0 24px}
+section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px}
+.drops{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:620px){.drops{grid-template-columns:1fr}}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:18px;text-align:center;cursor:pointer;min-height:170px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:.15s;background:var(--bg)}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop.filled{border-style:solid;border-color:var(--ok)}
+.drop .big{font-weight:600}.drop .small{color:var(--muted);font-size:13px}
+.drop video{max-width:100%;max-height:140px;border-radius:8px}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;width:100%;margin-top:6px}
+.bar>i{display:block;height:100%;background:var(--accent);width:0;transition:width .2s}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:620px){.row{grid-template-columns:1fr}}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+input[type=text],select,textarea{width:100%;padding:9px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:inherit}
+textarea{min-height:64px;resize:vertical}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;background:var(--bg);font-size:14px;user-select:none}
+.chip.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.pain{border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:10px;background:var(--bg)}
+.pain h3{margin:0 0 6px;font-size:14px}
+.pain .row3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;align-items:end}
+@media (max-width:620px){.pain .row3{grid-template-columns:1fr}}
+button.primary{background:var(--accent);color:#fff;border:0;border-radius:10px;padding:12px 22px;font-weight:600;font-size:15px;font-family:inherit;cursor:pointer}
+button.primary:disabled{opacity:.45;cursor:not-allowed}
+button.ghost{background:none;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:9px 16px;font:inherit;cursor:pointer}
+.hidden{display:none!important}
+.note{color:var(--muted);font-size:13px}
+.card{border-radius:10px;padding:12px 14px;margin:10px 0;border-left:5px solid var(--line);background:var(--info-bg)}
+.card.ok{background:var(--ok-bg);border-color:var(--ok)}.card.minor{background:var(--minor-bg);border-color:var(--minor)}.card.major{background:var(--major-bg);border-color:var(--major)}
+.card h3{margin:0 0 4px;font-size:15px}.card .meta{font-size:13px;color:var(--muted)}.card p{margin:6px 0 0}
+.tag{font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-left:8px;font-weight:700}
+.card.ok .tag{color:var(--ok)}.card.minor .tag{color:var(--minor)}.card.major .tag{color:var(--major)}
+.warn{background:var(--minor-bg);border-radius:10px;padding:10px 14px;margin:8px 0}
+.flag{background:var(--major-bg);border-radius:10px;padding:10px 14px;margin:8px 0}
+.yn{display:flex;gap:16px;margin:8px 0}.yn label{display:inline;color:var(--text);font-size:15px;margin:0}
+.dl a{margin-right:16px;color:var(--accent)}
+</style>
+</head>
+<body>
+<main>
+  <h1>🚴 Bike Fit Analyzer</h1>
+  <p class="sub">Drag in a video of yourself pedalling, tell us how you feel, and get a plain-language fit check.</p>
+
+  <section id="s-videos">
+    <h2>1 · Your video</h2>
+    <div class="drops">
+      <div class="drop" id="drop-side" data-kind="side">
+        <div class="big">Side view <span class="small">(required)</span></div>
+        <div class="small">Drag a video here or click to browse.<br>Camera beside the bike at hip height.</div>
+      </div>
+      <div class="drop" id="drop-front" data-kind="front">
+        <div class="big">Front or rear view <span class="small">(optional)</span></div>
+        <div class="small">Checks knee tracking and hip rocking.</div>
+      </div>
+    </div>
+    <p class="note">Tip: 10+ seconds of steady, seated pedalling, whole bike and rider in frame, good light. You can drop both videos at once (side first). Videos stay on your computer.</p>
+    <input type="file" id="picker" accept="video/*,.mov,.mkv,.mts" class="hidden">
+  </section>
+
+  <section id="s-form">
+    <h2>2 · About you</h2>
+    <div class="row">
+      <div><label>Bike type</label><select id="bike"></select></div>
+      <div><label>Riding goal</label><select id="goal">
+        <option value="comfort">Comfort</option><option value="endurance" selected>Endurance (long rides / fitness)</option><option value="performance">Performance (racing / speed)</option></select></div>
+      <div><label>Cycling experience</label><input type="text" id="experience" placeholder="e.g. 2 years"></div>
+      <div><label>Typical ride length</label><input type="text" id="ride_length" placeholder="e.g. 1.5 h or 100 km"></div>
+    </div>
+    <label>Recent changes to your setup (saddle, stem, cleats, shoes)</label><input type="text" id="recent_changes">
+    <label>Past injuries, surgeries or flexibility limits</label><input type="text" id="injuries">
+
+    <h2 style="margin-top:22px">3 · Pain &amp; discomfort</h2>
+    <p class="note" style="margin-top:-6px">Tap any area that has bothered you while or after riding in the last few weeks. Not a diagnosis.</p>
+    <div class="chips" id="chips"></div>
+    <div id="pains"></div>
+    <label>Anything else we should know?</label><textarea id="notes"></textarea>
+  </section>
+
+  <section id="s-go">
+    <button class="primary" id="go" disabled>Analyze my fit</button>
+    <span class="note" id="go-hint">Add a side-view video to begin.</span>
+  </section>
+
+  <section id="s-model" class="hidden">
+    <h2>One-time download</h2>
+    <p>The pose-estimation model (~9 MB, from Google's MediaPipe) isn't on this computer yet. It's saved to <code>~/.cache/bikefit/</code> and only downloaded once.</p>
+    <button class="primary" id="dl-model">Download model</button> <span class="note" id="dl-status"></span>
+  </section>
+
+  <section id="s-progress" class="hidden">
+    <h2 id="prog-title">Analyzing…</h2>
+    <div class="bar"><i id="prog-bar"></i></div>
+    <p class="note" id="prog-err"></p>
+  </section>
+
+  <section id="s-follow" class="hidden">
+    <h2>A few follow-up questions</h2>
+    <p class="note">Based on what the video showed, these are worth asking about.</p>
+    <div id="follow-list"></div>
+    <button class="primary" id="follow-go">Show my report</button>
+  </section>
+
+  <section id="s-report" class="hidden"></section>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const tokens = {side:null, front:null};
+let config = null, painAreas = {}, uploading = 0;
+
+// ---------- config & form ----------
+fetch("/api/config").then(r=>r.json()).then(c=>{
+  config = c; painAreas = c.pain_areas;
+  $("#bike").innerHTML = c.bike_types.map(b=>`<option value="${b}">${{road:"Road",gravel:"Gravel",mtb:"Mountain",hybrid:"Hybrid / city",tt:"Time trial / triathlon"}[b]}</option>`).join("");
+  $("#chips").innerHTML = Object.entries(painAreas).map(([k,v])=>`<span class="chip" data-area="${k}">${esc(v)}</span>`).join("");
+});
+$("#chips").addEventListener("click", e=>{
+  const chip = e.target.closest(".chip"); if(!chip) return;
+  const area = chip.dataset.area, on = chip.classList.toggle("on");
+  if(on) $("#pains").insertAdjacentHTML("beforeend", painForm(area, painAreas[area]));
+  else document.querySelector(`.pain[data-area="${area}"]`)?.remove();
+});
+function painForm(area, label, prefix=""){
+  return `<div class="pain" data-area="${area}"><h3>${esc(label)}</h3>
+   <div class="row3">
+    <div><label>How bad at its worst? <b class="sevv">4</b>/10</label><input type="range" class="sev" min="1" max="10" value="4" oninput="this.closest('.pain').querySelector('.sevv').textContent=this.value"></div>
+    <div><label>Starts</label><select class="onset"><option value="early">Early in the ride</option><option value="mid">Midway</option><option value="late" selected>Late in the ride</option><option value="after">Only afterwards</option></select></div>
+    <div><label>Side</label><select class="side"><option>both</option><option>left</option><option>right</option></select></div>
+   </div>
+   <label style="color:var(--text)"><input type="checkbox" class="lingers"> It (or any numbness/tingling) lasts hours or days after the ride</label></div>`;
+}
+function readPains(root){
+  return [...root.querySelectorAll(".pain")].map(p=>({area:p.dataset.area, severity:+p.querySelector(".sev").value,
+    onset:p.querySelector(".onset").value, side:p.querySelector(".side").value, lingers:p.querySelector(".lingers").checked}));
+}
+
+// ---------- drag & drop / upload ----------
+let pickerKind = null;
+const picker = $("#picker");
+document.querySelectorAll(".drop").forEach(z=>{
+  z.addEventListener("click", ()=>{pickerKind=z.dataset.kind; picker.click();});
+  z.addEventListener("dragover", e=>{e.preventDefault(); z.classList.add("over");});
+  z.addEventListener("dragleave", ()=>z.classList.remove("over"));
+  z.addEventListener("drop", e=>{e.preventDefault(); e.stopPropagation(); z.classList.remove("over");
+    handleFiles([...e.dataTransfer.files], z.dataset.kind);});
+});
+picker.addEventListener("change", ()=>{handleFiles([...picker.files], pickerKind); picker.value="";});
+// dropping anywhere else on the window also works
+window.addEventListener("dragover", e=>e.preventDefault());
+window.addEventListener("drop", e=>{e.preventDefault(); handleFiles([...e.dataTransfer.files], null);});
+
+function handleFiles(files, kind){
+  files = files.filter(f=>f.type.startsWith("video/") || /\.(mp4|mov|m4v|avi|mkv|webm|mts)$/i.test(f.name));
+  if(!files.length) return;
+  const order = kind==="front" ? ["front"] : kind==="side" ? ["side","front"] : (tokens.side||uploadingKind.side ? ["front","side"] : ["side","front"]);
+  files.slice(0,2).forEach((f,i)=>upload(f, order[i] || "front"));
+}
+const uploadingKind = {side:false, front:false};
+function upload(file, kind){
+  const zone = $("#drop-"+kind);
+  tokens[kind] = null; uploadingKind[kind] = true; uploading++; refreshGo();
+  zone.classList.remove("filled");
+  zone.innerHTML = `<div class="big">${esc(file.name)}</div><div class="small">Loading…</div><div class="bar"><i></i></div>`;
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", "/api/upload?name="+encodeURIComponent(file.name));
+  xhr.upload.onprogress = e=>{ if(e.lengthComputable) zone.querySelector(".bar i").style.width = (100*e.loaded/e.total)+"%"; };
+  xhr.onload = ()=>{
+    uploading--; uploadingKind[kind] = false;
+    let res = {}; try{res = JSON.parse(xhr.responseText);}catch{}
+    if(xhr.status===200){
+      tokens[kind] = res.token; zone.classList.add("filled");
+      zone.innerHTML = `<video src="${URL.createObjectURL(file)}" muted controls playsinline></video>
+        <div class="big" style="font-size:14px">${esc(file.name)}</div><div class="small">Click to replace · ${kind} view</div>`;
+      zone.querySelector("video").addEventListener("click", e=>e.stopPropagation());
+    } else {
+      zone.innerHTML = `<div class="big">Couldn't add that file</div><div class="small">${esc(res.error||"Upload failed")}</div>`;
+    }
+    refreshGo();
+  };
+  xhr.onerror = ()=>{uploading--; uploadingKind[kind]=false; zone.innerHTML=`<div class="big">Upload failed</div>`; refreshGo();};
+  xhr.send(file);
+}
+function refreshGo(){
+  $("#go").disabled = !tokens.side || uploading>0;
+  $("#go-hint").textContent = uploading ? "Loading video…" : tokens.side ? "" : "Add a side-view video to begin.";
+}
+
+// ---------- analyze ----------
+function profile(){
+  return {bike_type:$("#bike").value, goal:$("#goal").value, experience:$("#experience").value, ride_length:$("#ride_length").value,
+    recent_changes:$("#recent_changes").value, injuries:$("#injuries").value, notes:$("#notes").value, pains:readPains($("#pains"))};
+}
+$("#go").addEventListener("click", async ()=>{
+  const st = (await (await fetch("/api/config")).json()).model;
+  if(st.state!=="ready"){ show("#s-model"); $("#s-model").scrollIntoView({behavior:"smooth"}); return; }
+  startAnalysis();
+});
+$("#dl-model").addEventListener("click", async ()=>{
+  $("#dl-model").disabled = true; $("#dl-status").textContent = "Downloading…";
+  await fetch("/api/model",{method:"POST"});
+  const t = setInterval(async ()=>{
+    const m = (await (await fetch("/api/config")).json()).model;
+    if(m.state==="ready"){ clearInterval(t); hide("#s-model"); startAnalysis(); }
+    if(m.state==="error"){ clearInterval(t); $("#dl-status").textContent = "Download failed: "+m.error; $("#dl-model").disabled=false; }
+  }, 700);
+});
+const show = s=>$(s).classList.remove("hidden"), hide = s=>$(s).classList.add("hidden");
+async function startAnalysis(){
+  ["#s-follow","#s-report","#s-model"].forEach(hide); show("#s-progress");
+  $("#prog-err").textContent = ""; $("#go").disabled = true;
+  $("#s-progress").scrollIntoView({behavior:"smooth"});
+  const r = await fetch("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({side:tokens.side, front:tokens.front, profile:profile()})});
+  const j = await r.json();
+  if(!r.ok){ $("#prog-err").textContent = j.error; $("#go").disabled=false; return; }
+  poll(j.job);
+}
+function poll(job){
+  const t = setInterval(async ()=>{
+    const s = await (await fetch("/api/job/"+job)).json();
+    $("#prog-title").textContent = (s.stage||"Analyzing")+"…";
+    $("#prog-bar").style.width = Math.round((s.progress||0)*100)+"%";
+    if(s.status==="error"){ clearInterval(t); $("#prog-title").textContent="Something went wrong"; $("#prog-err").textContent=s.error; $("#go").disabled=false; }
+    else if(s.status==="followups"){ clearInterval(t); hide("#s-progress"); showFollowups(job, s.followups); }
+    else if(s.status==="done"){ clearInterval(t); hide("#s-progress"); showReport(job, s.report); $("#go").disabled=false; }
+  }, 600);
+}
+
+// ---------- follow-ups ----------
+function showFollowups(job, items){
+  $("#follow-list").innerHTML = items.map((f,i)=>`<div class="card" data-area="${f.area}">
+    <h3>${esc(f.title)}</h3><div class="meta">${esc(f.measured)}</div>
+    <p>${esc(f.question)}</p>
+    <div class="yn"><label><input type="radio" name="yn${i}" value="no" checked> No</label><label><input type="radio" name="yn${i}" value="yes"> Yes</label></div>
+    <div class="detail hidden">${painForm(f.area, f.label)}</div></div>`).join("");
+  $("#follow-list").querySelectorAll(".card").forEach(c=>c.addEventListener("change", ()=>{
+    c.querySelector(".detail").classList.toggle("hidden", c.querySelector("input[value=yes]").checked===false);
+  }));
+  show("#s-follow"); $("#s-follow").scrollIntoView({behavior:"smooth"});
+  $("#follow-go").onclick = async ()=>{
+    const pains = [...$("#follow-list").querySelectorAll(".card")].filter(c=>c.querySelector("input[value=yes]").checked)
+      .flatMap(c=>readPains(c));
+    $("#follow-go").disabled = true;
+    await fetch("/api/finalize/"+job,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pains})});
+    hide("#s-follow"); $("#follow-go").disabled=false; show("#s-progress"); poll(job);
+  };
+}
+
+// ---------- report ----------
+function showReport(job, r){
+  const card = f=>`<div class="card ${f.status}"><h3>${esc(f.title)}${f.status!=="ok"?`<span class="tag">${esc(f.status)}</span>`:""}</h3>
+    <div class="meta">Measured: ${esc(f.measured)} · Target: ${esc(f.target)}</div><p>${esc(f.explanation)}</p>
+    ${f.fix?`<p><b>Try:</b> ${esc(f.fix)}</p>`:""}</div>`;
+  const good = r.findings.filter(f=>f.status==="ok"), bad = r.findings.filter(f=>f.status==="minor"||f.status==="major")
+    .sort((a,b)=>(a.status==="major"?0:1)-(b.status==="major"?0:1));
+  const s = r.summary;
+  let h = `<h2>Your fit report</h2><p class="note">${esc(s.bike)} · ${esc(s.goal)} · ${s.side_cycles} pedal strokes analysed, facing ${esc(s.facing)}${s.cadence?` · cadence ≈ ${Math.round(s.cadence)} rpm`:""}</p>`;
+  if(r.warnings.length) h += r.warnings.map(w=>`<div class="warn">⚠️ ${esc(w)}</div>`).join("");
+  h += `<h2 style="margin-top:20px">✅ What's working</h2>` + (good.length ? good.map(card).join("") : `<p class="note">Nothing could be confirmed as in-range from this video.</p>`);
+  h += `<h2 style="margin-top:20px">🔧 Areas to improve</h2>` + (bad.length ? bad.map(card).join("") : `<p>No measurable issues found. Nice setup!</p>`);
+  h += `<h2 style="margin-top:20px">🩹 Your reported discomfort</h2>`;
+  if(!r.reported_any) h += `<p>You reported no pain or discomfort.${bad.length?" Even so, the items above may become issues on longer or harder rides.":""}</p>`;
+  r.pain_links.forEach(p=>h += `<div class="card minor"><h3>${esc(p.label)} <span class="meta">· ${p.severity}/10, starts ${esc(p.onset)}, ${esc(p.side)}</span></h3>
+    <p>The video shows a likely contributor: <b>${p.causes.map(esc).join("; ")}</b>.</p>${p.other?`<p class="meta">Also worth checking (not visible in video): ${esc(p.other)}.</p>`:""}</div>`);
+  r.pain_no_cause.forEach(p=>h += `<div class="card"><h3>${esc(p.label)} <span class="meta">· ${p.severity}/10, starts ${esc(p.onset)}, ${esc(p.side)}</span></h3>
+    <p>The video shows no obvious cause in what we could measure.${p.other?` Worth checking: ${esc(p.other)}.`:""}</p></div>`);
+  if(r.red_flags.length) h += `<h2 style="margin-top:20px">Please read</h2>` + r.red_flags.map(x=>`<div class="flag">🚩 ${esc(x)}</div>`).join("");
+  h += `<h2 style="margin-top:20px">Next steps</h2><ul><li>Change one thing at a time, in small steps (2–3 mm saddle, 10 mm stem), then ride a few times.</li>
+    <li>Re-film under the same conditions to compare.</li><li>Persistent pain: see a professional bike fitter and/or a physiotherapist.</li></ul>
+    <p class="note">Estimates come from a 2D pose model (±3–5° error is normal). These are general guidelines, not medical advice; comfort and your own feedback outrank any number.</p>
+    <p class="dl"><a href="/download/${job}/report.md">Download report</a><a href="/download/${job}/results.json">Raw results</a>${r.has_video?`<a href="/download/${job}/annotated.mp4">Annotated video</a>`:""}</p>
+    <p class="note">Also saved to: ${esc(r.output_dir)}</p><button class="ghost" onclick="location.reload()">Start over</button>`;
+  $("#s-report").innerHTML = h; show("#s-report"); $("#s-report").scrollIntoView({behavior:"smooth"});
+}
+</script>
+</body>
+</html>
